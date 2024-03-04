@@ -1,0 +1,17 @@
+cache/
+out/
+cache_hardhat/
+artifacts/
+.gas-snapshot
+.vscode/
+.env
+.encryptedKey
+broadcast/
+abi/
+
+node_modules
+.yarn
+
+.DS_Store
+src/.DS_Store
+local.deployment-lock.json

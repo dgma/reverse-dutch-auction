@@ -1,0 +1,10 @@
+build
+coverage
+out
+lib
+assets
+node_modules
+.next
+artifacts
+cache_hardhat
+cache
