@@ -12,16 +12,16 @@
     "url": "https://github.com:dgma/sol-starter/issues"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.0.2"
+    "@openzeppelin/contracts": "^5.0.2",
+    "@openzeppelin/contracts-upgradeable": "^5.0.2"
   },
   "devDependencies": {
     "@dgma/hardhat-sol-bundler": "^0.5.4",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.6",
-    "@nomicfoundation/hardhat-ethers": "^3.0.5",
     "@nomicfoundation/hardhat-foundry": "^1.1.1",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
-    "@nomicfoundation/hardhat-verify": "^2.0.4",
+    "@openzeppelin/hardhat-upgrades": "^3.0.3",
     "@types/chai": "^4.3.12",
     "@types/mocha": ">=10.0.6",
     "dotenv": "^16.4.5",

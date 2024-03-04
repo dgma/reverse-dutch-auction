@@ -15,7 +15,7 @@
         "ignoreConstructors": true
       }
     ],
-    "max-line-length": ["error", 100],
+    "max-line-length": ["error", 105],
     "not-rely-on-time": "off",
     "reason-string": [
       "warn",
