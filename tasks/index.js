@@ -1,4 +1,3 @@
-require("./mintCollateral");
-require("./testOpen");
-require("./upgradeVaultManager");
 require("./mine");
+require("./mint");
+require("./postDeploy");

@@ -122,15 +122,15 @@ contract DutchAuctionHouseTest is IDutchAuctionHouseEvents, Test {
         assertEq(auctionHouse.actualRate(id) > 0, true);
     }
 
-    function test_getBid_uninitialized() public {
+    function test_previewBid_uninitialized() public {
         vm.expectRevert(abi.encodeWithSelector(AuctionNotActive.selector));
-        auctionHouse.getBid(id, amountToCollect, 10);
+        auctionHouse.previewBid(id, amountToCollect, 10);
     }
 
-    function test_getBid() public {
+    function test_previewBid() public {
         _approveAll();
         _begin();
-        Bid memory bid = auctionHouse.getBid(id, amountToCollect, 32);
+        Bid memory bid = auctionHouse.previewBid(id, amountToCollect, 32);
         // rate: 2500000 * 10 ** (-8)
         // rawToCollect: amountToCollect * rate = 100 * 10 ** 18 * 2500000 * 10 ** (-8) =
         // = 25 * 10 ** 17
@@ -142,14 +142,14 @@ contract DutchAuctionHouseTest is IDutchAuctionHouseEvents, Test {
         assertEq(bid.toSwap, amountToCollect);
     }
 
-    function testFuzz_getBid(uint8 blockNumber, uint256 swapBid) public {
+    function testFuzz_previewBid(uint8 blockNumber, uint256 swapBid) public {
         vm.assume(
             amountToCollect >= swapBid && swapBid > 0 && _maxFizzAuctionBlocks() >= blockNumber
                 && blockNumber > 0
         );
         _approveAll();
         _begin();
-        Bid memory bid = auctionHouse.getBid(id, swapBid, blockNumber);
+        Bid memory bid = auctionHouse.previewBid(id, swapBid, blockNumber);
         assertEq(bid.toSwap <= swapBid, true);
     }
 
@@ -168,7 +168,7 @@ contract DutchAuctionHouseTest is IDutchAuctionHouseEvents, Test {
         _approveAll();
         _begin();
         swapToken.approve(address(auctionHouse), type(uint256).max);
-        Bid memory bid = auctionHouse.getBid(id, amountToCollect / 2, 32);
+        Bid memory bid = auctionHouse.previewBid(id, amountToCollect / 2, 32);
         vm.roll(32);
         vm.expectEmit(true, true, false, true);
         emit AuctionBid(id, bid.toSwap, bid.toRedeem);
@@ -181,7 +181,7 @@ contract DutchAuctionHouseTest is IDutchAuctionHouseEvents, Test {
         _approveAll();
         _begin();
         swapToken.approve(address(auctionHouse), type(uint256).max);
-        Bid memory bid = auctionHouse.getBid(id, amountToCollect, 253);
+        Bid memory bid = auctionHouse.previewBid(id, amountToCollect, 253);
         vm.roll(253);
         auctionHouse.processBid(id, bid);
         hoax(notOwner);
@@ -193,7 +193,7 @@ contract DutchAuctionHouseTest is IDutchAuctionHouseEvents, Test {
         _approveAll();
         _begin();
         swapToken.approve(address(auctionHouse), type(uint256).max);
-        Bid memory bid = auctionHouse.getBid(id, amountToCollect / 2, 253);
+        Bid memory bid = auctionHouse.previewBid(id, amountToCollect / 2, 253);
         vm.roll(253);
         auctionHouse.processBid(id, bid);
         vm.expectRevert(HasNotFinished.selector);
@@ -204,7 +204,7 @@ contract DutchAuctionHouseTest is IDutchAuctionHouseEvents, Test {
         _approveAll();
         _begin();
         swapToken.approve(address(auctionHouse), type(uint256).max);
-        Bid memory bid = auctionHouse.getBid(id, amountToCollect, 253);
+        Bid memory bid = auctionHouse.previewBid(id, amountToCollect, 253);
         vm.roll(253);
         auctionHouse.processBid(id, bid);
         vm.expectEmit(true, false, false, true);
@@ -216,7 +216,7 @@ contract DutchAuctionHouseTest is IDutchAuctionHouseEvents, Test {
         _approveAll();
         _begin();
         swapToken.approve(address(auctionHouse), type(uint256).max);
-        Bid memory bid = auctionHouse.getBid(id, amountToCollect / 2, 32);
+        Bid memory bid = auctionHouse.previewBid(id, amountToCollect / 2, 32);
         vm.roll(32);
         auctionHouse.processBid(id, bid);
         ActiveAuctionReport[] memory report = auctionHouse.getActiveAuctions();

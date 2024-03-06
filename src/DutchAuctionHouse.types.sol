@@ -7,14 +7,18 @@ error AuctionNotActive();
 error ActiveAuctionHouse();
 error HasNotFinished();
 
+struct AuctionStats {
+    uint256 collected;
+    uint256 distributed;
+}
+
 struct Auction {
     uint256 initBlock;
     uint256 amountToCollect;
-    uint256 collected;
     address swapToken;
     uint256 amountToDistribute;
-    uint256 distributed;
     address redeemToken;
+    AuctionStats stats;
 }
 
 struct ActiveAuctionReport {
@@ -58,7 +62,7 @@ interface IDutchAuctionHouse is IDutchAuctionHouseEvents {
         address redeemToken
     ) external;
 
-    function getBid(bytes32 id, uint256 swapAmount, uint256 blockNumber)
+    function previewBid(bytes32 id, uint256 swapAmount, uint256 blockNumber)
         external
         view
         returns (Bid memory);

@@ -2,7 +2,7 @@ const config = require("dotenv").config();
 const { task } = require("hardhat/config");
 const { getLock, getDeployment } = require("@dgma/hardhat-sol-bundler");
 
-const MINT_COLLATERAL = "mint-collateral";
+const MINT_COLLATERAL = "mint";
 
 task(MINT_COLLATERAL, "Mint SlopeCollateral tokens to faucet").setAction(async (_, hre) => {
   const { SlopeCollateral } = getLock(getDeployment(hre)?.lockFile)[hre.network.name];

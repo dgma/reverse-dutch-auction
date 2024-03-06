@@ -12,6 +12,7 @@ import {Utils} from "src/Utils.sol";
 import {
     IDutchAuctionHouse,
     Auction,
+    AuctionStats,
     ActiveAuctionReport,
     Bid,
     BidIsTooHigh,
@@ -55,7 +56,7 @@ contract DutchAuctionHouse is IDutchAuctionHouse, Ownable {
     }
 
     modifier withValidBid(bytes32 id, Bid memory bid) {
-        if (bid.toRedeem > _leftDistribute(id)) {
+        if (bid.toRedeem > _leftDistribute(auctions[id])) {
             revert BidIsTooHigh();
         }
         _;
@@ -96,10 +97,9 @@ contract DutchAuctionHouse is IDutchAuctionHouse, Ownable {
         auctions[id] = Auction({
             initBlock: block.number,
             amountToCollect: amountToCollect,
-            collected: 0,
             swapToken: swapToken,
             amountToDistribute: amountToDistribute,
-            distributed: 0,
+            stats: AuctionStats({collected: 0, distributed: 0}),
             redeemToken: redeemToken
         });
         auctionsSet.add(id);
@@ -107,7 +107,7 @@ contract DutchAuctionHouse is IDutchAuctionHouse, Ownable {
         emit AuctionBegins(id, block.number);
     }
 
-    function getBid(bytes32 id, uint256 swapAmount, uint256 blockNumber)
+    function previewBid(bytes32 id, uint256 swapAmount, uint256 blockNumber)
         public
         view
         onlyActiveAuction(id)
@@ -124,63 +124,76 @@ contract DutchAuctionHouse is IDutchAuctionHouse, Ownable {
     }
 
     function baseSwapRatio(bytes32 id) public view returns (uint256) {
-        return auctions[id].amountToCollect.mulDiv(
-            Utils.appDenominator, auctions[id].amountToDistribute
-        );
+        Auction memory auction = auctions[id];
+        return auction.amountToCollect.mulDiv(Utils.appDenominator, auction.amountToDistribute);
     }
 
-    function _rate(bytes32 id, uint256 blockNumber) private view returns (uint256) {
+    function _auction(bytes32 id) internal view returns (Auction memory) {
+        return auctions[id];
+    }
+
+    function _rate(bytes32 id, uint256 blockNumber) internal view returns (uint256) {
         return _ratePerStep(id) * _step(id, blockNumber);
     }
 
-    function _ratePerStep(bytes32 id) private view returns (uint256) {
+    function _ratePerStep(bytes32 id) internal view returns (uint256) {
         return baseSwapRatio(id).mulDiv(stepRate, Utils.appDenominator);
     }
 
-    function _step(bytes32 id, uint256 blockNumber) private view returns (uint256) {
+    function _step(bytes32 id, uint256 blockNumber) internal view returns (uint256) {
         return (blockNumber - auctions[id].initBlock).roundToWholeValue(stepLength) / stepLength;
     }
 
-    function _leftCollect(bytes32 id) private view returns (uint256) {
-        return auctions[id].amountToCollect - auctions[id].collected;
+    function _leftCollect(Auction memory auction) internal pure returns (uint256) {
+        return auction.amountToCollect - auction.stats.collected;
     }
 
-    function _leftDistribute(bytes32 id) private view returns (uint256) {
-        return auctions[id].amountToDistribute - auctions[id].distributed;
+    function _leftDistribute(Auction memory auction) internal pure returns (uint256) {
+        return auction.amountToDistribute - auction.stats.distributed;
     }
 
-    function processBid(bytes32 id, Bid calldata bid)
-        external
-        onlyOwner
+    function processBid(bytes32 id, Bid calldata bid) external onlyOwner {
+        _processBid(id, bid);
+    }
+
+    function _processBid(bytes32 id, Bid memory bid)
+        internal
         onlyActiveAuction(id)
         withValidBid(id, bid)
     {
-        auctions[id].collected += bid.toSwap;
-        auctions[id].distributed += bid.toRedeem;
+        Auction memory auction = auctions[id];
+        auctions[id].stats = AuctionStats({
+            collected: auction.stats.collected + bid.toSwap,
+            distributed: auction.stats.distributed + bid.toRedeem
+        });
 
-        ERC20(auctions[id].swapToken).transferFrom(msg.sender, address(this), bid.toSwap);
-        ERC20(auctions[id].redeemToken).transfer(msg.sender, bid.toRedeem);
+        ERC20(auction.swapToken).transferFrom(msg.sender, address(this), bid.toSwap);
+        ERC20(auction.redeemToken).transfer(msg.sender, bid.toRedeem);
 
         emit AuctionBid(id, bid.toSwap, bid.toRedeem);
     }
 
     function close(bytes32 id) external onlyOwner {
-        uint256 toCollect = _leftCollect(id);
-        uint256 toDistribute = _leftDistribute(id);
+        Auction memory auction = auctions[id];
+        uint256 toCollect = _leftCollect(auction);
+        uint256 toDistribute = _leftDistribute(auction);
 
         if (toCollect != 0 && toDistribute != 0) {
             revert HasNotFinished();
         }
-
         if (toCollect == 0 || toDistribute == 0) {
-            auctions[id].initBlock = 0;
-            ERC20(auctions[id].swapToken).transfer(owner(), auctions[id].collected);
-            if (toDistribute > 0) {
-                ERC20(auctions[id].redeemToken).transfer(owner(), toDistribute);
-            }
-            auctionsSet.remove(id);
-            emit AuctionEnds(id);
+            _close(id, auction, toDistribute);
         }
+    }
+
+    function _close(bytes32 id, Auction memory auction, uint256 toDistribute) internal {
+        auctions[id].initBlock = 0;
+        ERC20(auction.swapToken).transfer(owner(), auction.stats.collected);
+        if (toDistribute > 0) {
+            ERC20(auction.redeemToken).transfer(owner(), toDistribute);
+        }
+        auctionsSet.remove(id);
+        emit AuctionEnds(id);
     }
 
     function getActiveAuctions()
@@ -193,15 +206,16 @@ contract DutchAuctionHouse is IDutchAuctionHouse, Ownable {
         bytes32 id;
         for (uint256 index = 0; index < len; index++) {
             id = auctionsSet.at(index);
+            Auction memory auction = auctions[id];
             activeAuctionReport[index] = ActiveAuctionReport({
                 stepRate: _ratePerStep(id),
                 step: _step(id, block.number) + 1,
-                amountToCollect: auctions[id].amountToCollect,
-                amountToDistribute: auctions[id].amountToDistribute,
-                collected: auctions[id].collected,
-                swapToken: auctions[id].swapToken,
-                distributed: auctions[id].distributed,
-                redeemToken: auctions[id].redeemToken
+                amountToCollect: auction.amountToCollect,
+                amountToDistribute: auction.amountToDistribute,
+                collected: auction.stats.collected,
+                swapToken: auction.swapToken,
+                distributed: auction.stats.distributed,
+                redeemToken: auction.redeemToken
             });
         }
     }

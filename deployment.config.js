@@ -11,15 +11,17 @@ const config = {
       },
     },
   },
-  DutchAuctionHousesManager: {
-    proxy: {
-      type: SupportedProxies.UUPS,
-      unsafeAllow: ["external-library-linking", "constructor"],
-    },
+  DutchPublicAuctionHouse: {
     options: {
       libs: {
         Utils: dynamicAddress("Utils"),
       },
+    },
+  },
+  DutchAuctionHousesManager: {
+    proxy: {
+      type: SupportedProxies.UUPS,
+      unsafeAllow: ["constructor"],
     },
   },
 };

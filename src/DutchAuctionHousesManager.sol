@@ -3,32 +3,31 @@ pragma solidity ^0.8.16;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
-
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-import {DutchAuctionHouse} from "src/DutchAuctionHouse.sol";
+import {IDutchAuctionHouse} from "src/DutchAuctionHouse.types.sol";
 
 contract DutchAuctionHousesManager is OwnableUpgradeable, UUPSUpgradeable {
     error WrongOwnership();
     error ActiveAuctionHouse();
 
-    event AuctionCreated(address indexed creator, address indexed auctionHouse);
+    event AuctionCreated(address indexed creator, address indexed auctionHouseInstance);
 
     using EnumerableSet for EnumerableSet.AddressSet;
 
     mapping(address => EnumerableSet.AddressSet) private auctionHouses;
-    DutchAuctionHouse private baseHouse;
 
-    modifier onlyHouseOwner(address auctionHouse) {
-        if (DutchAuctionHouse(auctionHouse).owner() != msg.sender) {
+    modifier onlyHouseOwner(address auctionHouseInstance) {
+        if (Ownable(auctionHouseInstance).owner() != msg.sender) {
             revert WrongOwnership();
         }
         _;
     }
 
     modifier onlyInActiveHouse(address auctionHouse) {
-        if (DutchAuctionHouse(auctionHouse).isAuctionHouseActive()) {
+        if (IDutchAuctionHouse(auctionHouse).isAuctionHouseActive()) {
             revert ActiveAuctionHouse();
         }
         _;
@@ -39,21 +38,22 @@ contract DutchAuctionHousesManager is OwnableUpgradeable, UUPSUpgradeable {
     }
 
     function initialize() external initializer {
-        baseHouse = new DutchAuctionHouse();
         __Ownable_init(msg.sender);
     }
 
+    function upgradeCallback(address) external reinitializer(2) {}
+
     function _authorizeUpgrade(address) internal view override onlyOwner {}
 
-    function createHouse(uint256 lotSize, uint256 stepRate, uint8 stepLength)
+    function createHouse(uint256 lotSize, uint256 stepRate, uint8 stepLength, address auctionHouse)
         external
-        returns (address auctionHouse)
+        returns (address auctionHouseInstance)
     {
-        auctionHouse = Clones.clone(address(baseHouse));
-        DutchAuctionHouse(auctionHouse).setHouseParams(lotSize, stepRate, stepLength);
-        DutchAuctionHouse(auctionHouse).transferOwnership(msg.sender);
-        auctionHouses[msg.sender].add(auctionHouse);
-        emit AuctionCreated(msg.sender, auctionHouse);
+        auctionHouseInstance = Clones.clone(address(auctionHouse));
+        IDutchAuctionHouse(auctionHouseInstance).setHouseParams(lotSize, stepRate, stepLength);
+        Ownable(auctionHouseInstance).transferOwnership(msg.sender);
+        auctionHouses[msg.sender].add(auctionHouseInstance);
+        emit AuctionCreated(msg.sender, auctionHouseInstance);
     }
 
     function getAuctionHouses(address owner)
@@ -68,11 +68,11 @@ contract DutchAuctionHousesManager is OwnableUpgradeable, UUPSUpgradeable {
         }
     }
 
-    function deleteHouse(address auctionHouse)
+    function deleteHouse(address auctionHouseInstance)
         external
-        onlyHouseOwner(auctionHouse)
-        onlyInActiveHouse(auctionHouse)
+        onlyHouseOwner(auctionHouseInstance)
+        onlyInActiveHouse(auctionHouseInstance)
     {
-        auctionHouses[msg.sender].remove(auctionHouse);
+        auctionHouses[msg.sender].remove(auctionHouseInstance);
     }
 }
