@@ -37,4 +37,6 @@ deploy :; npx hardhat --network $(network) deploy-bundle
 
 run :; npx hardhat --network $(network) $(task) 
 
+localdev :; rm local.deployment-lock.json; npx hardhat --network localhost deploy-bundle
+
 -include ${FCT_PLUGIN_PATH}/makefile-external
