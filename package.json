@@ -31,6 +31,7 @@
     "lint-staged": "^15.2.2",
     "prettier": "^3.2.5",
     "solhint": "^4.1.1",
-    "solidity-coverage": "^0.8.10"
+    "solidity-coverage": "^0.8.10",
+    "solc": "^0.8.24"
   }
 }
