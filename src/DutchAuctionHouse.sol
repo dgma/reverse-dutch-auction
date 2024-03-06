@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -22,7 +22,7 @@ import {
     HasNotFinished
 } from "./DutchAuctionHouse.types.sol";
 
-contract DutchAuctionHouse is IDutchAuctionHouse, Ownable {
+contract DutchAuctionHouse is IDutchAuctionHouse, OwnableUpgradeable {
     using Math for uint256;
     using Utils for uint256;
     using EnumerableSet for EnumerableSet.Bytes32Set;
@@ -62,13 +62,27 @@ contract DutchAuctionHouse is IDutchAuctionHouse, Ownable {
         _;
     }
 
-    constructor() Ownable(msg.sender) {}
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(address owner, uint256 lotSize_, uint256 stepRate_, uint8 stepLength_)
+        external
+        initializer
+    {
+        __Ownable_init(owner);
+        _setHouseParams(lotSize_, stepRate_, stepLength_);
+    }
 
     function setHouseParams(uint256 lotSize_, uint256 stepRate_, uint8 stepLength_)
         public
         onlyOwner
         onlyNotActiveHouse
     {
+        _setHouseParams(lotSize_, stepRate_, stepLength_);
+    }
+
+    function _setHouseParams(uint256 lotSize_, uint256 stepRate_, uint8 stepLength_) private {
         stepRate = stepRate_;
         stepLength = stepLength_;
         lotSize = lotSize_;
@@ -196,18 +210,14 @@ contract DutchAuctionHouse is IDutchAuctionHouse, Ownable {
         emit AuctionEnds(id);
     }
 
-    function getActiveAuctions()
-        external
-        view
-        returns (ActiveAuctionReport[] memory activeAuctionReport)
-    {
+    function getActiveAuctions() external view returns (ActiveAuctionReport[] memory) {
         uint256 len = auctionsSet.length();
-        activeAuctionReport = new ActiveAuctionReport[](len);
+        ActiveAuctionReport[] memory activeAuctionReport = new ActiveAuctionReport[](len);
         bytes32 id;
-        for (uint256 index = 0; index < len; index++) {
-            id = auctionsSet.at(index);
+        for (uint256 i = 0; i < len; i++) {
+            id = auctionsSet.at(i);
             Auction memory auction = auctions[id];
-            activeAuctionReport[index] = ActiveAuctionReport({
+            activeAuctionReport[i] = ActiveAuctionReport({
                 stepRate: _ratePerStep(id),
                 step: _step(id, block.number) + 1,
                 amountToCollect: auction.amountToCollect,
@@ -218,5 +228,6 @@ contract DutchAuctionHouse is IDutchAuctionHouse, Ownable {
                 redeemToken: auction.redeemToken
             });
         }
+        return activeAuctionReport;
     }
 }

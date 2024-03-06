@@ -46,6 +46,9 @@ interface IDutchAuctionHouseEvents {
 }
 
 interface IDutchAuctionHouse is IDutchAuctionHouseEvents {
+    function initialize(address owner, uint256 lotSize_, uint256 stepRate_, uint8 stepLength_)
+        external;
+
     function setHouseParams(uint256 lotSize_, uint256 stepRate_, uint8 stepLength_) external;
 
     function isAuctionHouseActive() external view returns (bool);
@@ -73,8 +76,5 @@ interface IDutchAuctionHouse is IDutchAuctionHouseEvents {
 
     function close(bytes32 id) external;
 
-    function getActiveAuctions()
-        external
-        view
-        returns (ActiveAuctionReport[] memory activeAuctionReport);
+    function getActiveAuctions() external view returns (ActiveAuctionReport[] memory);
 }

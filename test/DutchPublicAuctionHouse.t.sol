@@ -6,6 +6,8 @@ pragma solidity ^0.8.16;
 import "@std/Test.sol";
 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
+
 import {TestUtils} from "./TestUtils.sol";
 import {SomeToken} from "src/SomeToken.sol";
 
@@ -52,8 +54,8 @@ contract DutchPublicAuctionHouseTest is Test {
         swapToken.mint(notOwner, amountToCollect);
         redeemToken.mint(address(this), amountToDistribute);
 
-        auctionHouse = new DutchPublicAuctionHouse();
-        auctionHouse.setHouseParams(lotSize, stepRate, stepLength);
+        auctionHouse = DutchPublicAuctionHouse(Clones.clone(address(new DutchPublicAuctionHouse())));
+        auctionHouse.initialize(address(this), lotSize, stepRate, stepLength);
 
         redeemToken.approve(address(auctionHouse), type(uint256).max);
 

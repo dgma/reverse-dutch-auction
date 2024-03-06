@@ -1,6 +1,6 @@
 -include .env
 
-.PHONY: all test clean install compile snapshot 
+.PHONY: all test clean install compile snapshot run
 
 all: clean install test
 
@@ -35,6 +35,6 @@ task?=mine
 
 deploy :; npx hardhat --network $(network) deploy-bundle
 
-task :; npx hardhat --network $(network) $(task)
+run :; npx hardhat --network $(network) $(task) 
 
 -include ${FCT_PLUGIN_PATH}/makefile-external

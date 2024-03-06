@@ -3,6 +3,14 @@ const { VerifyPlugin } = require("@dgma/hardhat-sol-bundler/plugins/Verify");
 const { dynamicAddress, SupportedProxies } = require("@dgma/hardhat-sol-bundler");
 
 const config = {
+  SwapToken: {
+    contractName: "SomeToken",
+    args: ["SWT", "Swap Token"],
+  },
+  RedeemToken: {
+    contractName: "SomeToken",
+    args: ["RT", "Redeem Token"],
+  },
   Utils: {},
   DutchAuctionHouse: {
     options: {

@@ -16,7 +16,7 @@
     "@openzeppelin/contracts-upgradeable": "^5.0.2"
   },
   "devDependencies": {
-    "@dgma/hardhat-sol-bundler": "^0.5.4",
+    "@dgma/hardhat-sol-bundler": "^0.5.6",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.6",
     "@nomicfoundation/hardhat-foundry": "^1.1.1",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.10",

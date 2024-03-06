@@ -3,7 +3,6 @@ pragma solidity ^0.8.16;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
@@ -20,7 +19,7 @@ contract DutchAuctionHousesManager is OwnableUpgradeable, UUPSUpgradeable {
     mapping(address => EnumerableSet.AddressSet) private auctionHouses;
 
     modifier onlyHouseOwner(address auctionHouseInstance) {
-        if (Ownable(auctionHouseInstance).owner() != msg.sender) {
+        if (OwnableUpgradeable(auctionHouseInstance).owner() != msg.sender) {
             revert WrongOwnership();
         }
         _;
@@ -41,7 +40,7 @@ contract DutchAuctionHousesManager is OwnableUpgradeable, UUPSUpgradeable {
         __Ownable_init(msg.sender);
     }
 
-    function upgradeCallback(address) external reinitializer(2) {}
+    function upgradeCallBack() external reinitializer(2) {}
 
     function _authorizeUpgrade(address) internal view override onlyOwner {}
 
@@ -50,8 +49,9 @@ contract DutchAuctionHousesManager is OwnableUpgradeable, UUPSUpgradeable {
         returns (address auctionHouseInstance)
     {
         auctionHouseInstance = Clones.clone(address(auctionHouse));
-        IDutchAuctionHouse(auctionHouseInstance).setHouseParams(lotSize, stepRate, stepLength);
-        Ownable(auctionHouseInstance).transferOwnership(msg.sender);
+        IDutchAuctionHouse(auctionHouseInstance).initialize(
+            msg.sender, lotSize, stepRate, stepLength
+        );
         auctionHouses[msg.sender].add(auctionHouseInstance);
         emit AuctionCreated(msg.sender, auctionHouseInstance);
     }
