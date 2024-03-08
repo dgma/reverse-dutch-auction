@@ -78,7 +78,7 @@ contract DutchAuctionHouseTest is RDAEvents, Test {
     }
 
     function _approveAll() internal {
-        redeemToken.approve(address(auctionHouse), type(uint256).max);
+        redeemToken.approve(address(auctionHouse), amountToDistribute);
     }
 
     function test_begin_only_owner() public {
