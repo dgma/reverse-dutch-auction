@@ -1,15 +1,6 @@
-# Sol-starter
+# inverse-dutch-auction
 
-Template to bootstrap solidity project
-
-## Features
-
-- Foundry for unit testing
-- Hardhat for integration tests & deployment
-- hardhat-sol-bundler for declarative and smart deployments
-- linters, code formatter, pre-commit and pre-push hooks
-- Makefile & Docker dev container for convenient and safe development
-- Custom github action and quality gate workflow for fast CI strategy implementation
+[Reverse Dutch Auction](https://en.wikipedia.org/wiki/Reverse_auction) implementation 
 
 ## Requirements
 

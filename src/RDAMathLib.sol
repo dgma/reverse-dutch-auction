@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-library Utils {
-    uint256 public constant appDenominator = 100000000;
-    uint8 public constant appDecimals = 8;
-
+library RDAMathLib {
     function roundToWholeValue(uint256 value, uint256 denominator)
-        external
+        internal
         pure
         returns (uint256)
     {
@@ -14,7 +11,7 @@ library Utils {
         return value - valueToCut;
     }
 
-    function toAppDecimals(uint256 val) external pure returns (uint256) {
-        return val * 10 ** appDecimals;
+    function divDown(uint256 value, uint256 denominator) internal pure returns (uint256) {
+        return roundToWholeValue(value, denominator) / denominator;
     }
 }

@@ -9,23 +9,22 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
 import {TestUtils} from "./TestUtils.sol";
-import {SomeToken} from "src/SomeToken.sol";
+import {SomeToken} from "./mocks/SomeToken.sol";
 
-import {DutchAuctionHouse} from "src/DutchAuctionHouse.sol";
+import {OpenRDA, RDAEvents} from "src/OpenRDA.sol";
 import {
-    IDutchAuctionHouseEvents,
     ActiveAuction,
     AuctionNotActive,
     HasNotFinished,
     Bid,
     ActiveAuctionReport
-} from "src/DutchAuctionHouse.types.sol";
+} from "src/RDA.types.sol";
 
-contract DutchAuctionHouseTest is IDutchAuctionHouseEvents, Test {
+contract DutchAuctionHouseTest is RDAEvents, Test {
     using Math for uint256;
     using TestUtils for SomeToken;
 
-    DutchAuctionHouse private auctionHouse;
+    OpenRDA private auctionHouse;
 
     // 1.25% => 0.0125 => 0.0125 * 10 ** 8 = 125 * 10 ** 4
     uint256 private stepRate = 125 * 10 ** 4;
@@ -52,10 +51,10 @@ contract DutchAuctionHouseTest is IDutchAuctionHouseEvents, Test {
         amountToCollect = swapToken.conv(100);
         amountToDistribute = redeemToken.conv(500);
 
-        swapToken.mint(address(this), amountToCollect);
+        swapToken.mint(notOwner, amountToCollect);
         redeemToken.mint(address(this), amountToDistribute);
 
-        auctionHouse = DutchAuctionHouse(Clones.clone(address(new DutchAuctionHouse())));
+        auctionHouse = OpenRDA(Clones.clone(address(new OpenRDA())));
         auctionHouse.initialize(address(this), lotSize, stepRate, stepLength);
     }
 
@@ -63,8 +62,12 @@ contract DutchAuctionHouseTest is IDutchAuctionHouseEvents, Test {
         return Math.mulDiv(stepLength, 10 ** 8, stepRate);
     }
 
+    function _prepareNotOwnerToBid(uint256 bidAmount) internal {
+        vm.startPrank(notOwner);
+        swapToken.approve(address(auctionHouse), bidAmount);
+    }
+
     function test_base_getters() public {
-        assertEq(auctionHouse.isAuctionHouseActive(), false);
         assertEq(auctionHouse.owner(), address(this));
     }
 
@@ -100,7 +103,6 @@ contract DutchAuctionHouseTest is IDutchAuctionHouseEvents, Test {
     function test_begin_only_once() public {
         _approveAll();
         _begin();
-        assertEq(auctionHouse.isAutcionActive(id), true);
         vm.expectRevert(abi.encodeWithSelector(ActiveAuction.selector));
         _begin();
     }
@@ -155,72 +157,55 @@ contract DutchAuctionHouseTest is IDutchAuctionHouseEvents, Test {
         assertEq(bid.toSwap <= swapBid, true);
     }
 
-    function test_processBid_notActive() public {
+    function test_makeBid_notActive() public {
+        _prepareNotOwnerToBid(amountToCollect / 2);
         vm.expectRevert(abi.encodeWithSelector(AuctionNotActive.selector));
-        auctionHouse.processBid(id, Bid({toSwap: 0, toRedeem: 0}));
+        auctionHouse.makeBid(id, amountToCollect / 2);
     }
 
-    function test_processBid_onlyOwner() public {
-        hoax(notOwner);
-        vm.expectRevert();
-        auctionHouse.processBid(id, Bid({toSwap: 0, toRedeem: 0}));
-    }
-
-    function test_processBid() public {
+    function test_makeBid() public {
         _approveAll();
         _begin();
-        swapToken.approve(address(auctionHouse), type(uint256).max);
+        _prepareNotOwnerToBid(amountToCollect / 2);
         Bid memory bid = auctionHouse.previewBid(id, amountToCollect / 2, 32);
         vm.roll(32);
         vm.expectEmit(true, true, false, true);
         emit AuctionBid(id, bid.toSwap, bid.toRedeem);
-        auctionHouse.processBid(id, bid);
-        assertEq(redeemToken.balanceOf(address(this)), 1200000000000000000);
+        auctionHouse.makeBid(id, amountToCollect / 2);
+        assertEq(redeemToken.balanceOf(notOwner), 1200000000000000000);
         assertEq(swapToken.balanceOf(address(auctionHouse)), 48000000000000000000);
     }
 
-    function test_auction_onlyOwner() public {
+    function testFuzz_makeBid(uint256 bidAmount) public {
         _approveAll();
         _begin();
-        swapToken.approve(address(auctionHouse), type(uint256).max);
-        Bid memory bid = auctionHouse.previewBid(id, amountToCollect, 253);
-        vm.roll(253);
-        auctionHouse.processBid(id, bid);
-        hoax(notOwner);
-        vm.expectRevert();
-        auctionHouse.close(id);
+        vm.assume(
+            auctionHouse.previewBid(id, bidAmount, 32).toSwap > 0 && bidAmount < amountToCollect
+        );
+        _prepareNotOwnerToBid(bidAmount);
+        vm.roll(32);
+        auctionHouse.makeBid(id, bidAmount);
+        assert(redeemToken.balanceOf(notOwner) > 0);
+        assert(swapToken.balanceOf(address(auctionHouse)) > 0);
     }
 
-    function test_auction_close_failing() public {
+    function test_autoclose() public {
         _approveAll();
         _begin();
-        swapToken.approve(address(auctionHouse), type(uint256).max);
-        Bid memory bid = auctionHouse.previewBid(id, amountToCollect / 2, 253);
+        _prepareNotOwnerToBid(amountToCollect);
         vm.roll(253);
-        auctionHouse.processBid(id, bid);
-        vm.expectRevert(HasNotFinished.selector);
-        auctionHouse.close(id);
-    }
-
-    function test_auction_close() public {
-        _approveAll();
-        _begin();
-        swapToken.approve(address(auctionHouse), type(uint256).max);
-        Bid memory bid = auctionHouse.previewBid(id, amountToCollect, 253);
-        vm.roll(253);
-        auctionHouse.processBid(id, bid);
-        vm.expectEmit(true, false, false, true);
-        emit AuctionEnds(id);
-        auctionHouse.close(id);
+        (uint256 leftDebt, uint256 leftCollateral) = auctionHouse.makeBid(id, amountToCollect);
+        assertEq(leftDebt, 0);
+        assertEq(redeemToken.balanceOf(address(this)), leftCollateral);
     }
 
     function test_getActiveAuctions() public {
         _approveAll();
         _begin();
+        _prepareNotOwnerToBid(amountToCollect / 2);
         swapToken.approve(address(auctionHouse), type(uint256).max);
-        Bid memory bid = auctionHouse.previewBid(id, amountToCollect / 2, 32);
         vm.roll(32);
-        auctionHouse.processBid(id, bid);
+        auctionHouse.makeBid(id, amountToCollect / 2);
         ActiveAuctionReport[] memory report = auctionHouse.getActiveAuctions();
         assert(report.length == 1);
         // todo: add more fields check

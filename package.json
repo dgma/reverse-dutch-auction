@@ -1,15 +1,25 @@
 {
-  "name": "sol-starter",
-  "version": "0.0.3",
-  "description": "Template to bootstrap solidity project with foundry and hardhat",
-  "author": "Dogma Labs",
+  "name": "@dgma/reverse-dutch-auction",
+  "version": "0.0.1",
+  "description": "Contracts for dutch reverse auction implementation",
+  "files": [
+    "src"
+  ],
+  "keywords": [
+    "ethereum",
+    "smart-contracts",
+    "dutch-reverse-auction",
+    "defi"
+  ],
+  "author": "Dzmitry Lahunouski, Dogma Labs",
   "license": "MIT",
+  "homepage": "https://github.com/dgma/reverse-dutch-auction#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com:dgma/sol-starter.git"
+    "url": "git+https://github.com:dgma/reverse-dutch-auction.git"
   },
   "bugs": {
-    "url": "https://github.com:dgma/sol-starter/issues"
+    "url": "https://github.com:dgma/reverse-dutch-auction/issues"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.0.2",
