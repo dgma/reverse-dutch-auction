@@ -13,11 +13,15 @@ interface RDAEvents {
     event AuctionEnds(bytes32 indexed id);
 }
 
+struct AuctionTokens {
+    address redeemToken;
+    address swapToken;
+}
+
 contract OpenRDA is RDA, RDAEvents {
     using SafeERC20 for IERC20;
 
-    address redeemToken;
-    address swapToken;
+    mapping(bytes32 => AuctionTokens) private auctionTokens;
 
     constructor() RDA() {}
 
@@ -28,13 +32,13 @@ contract OpenRDA is RDA, RDAEvents {
     function begin(
         bytes32 id,
         uint256 amountToCollect,
-        address swapToken_,
+        address swapToken,
         uint256 amountToDistribute,
-        address redeemToken_
+        address redeemToken
     ) external onlyOwner {
         _begin(id, amountToCollect, amountToDistribute);
-        redeemToken = redeemToken_;
-        swapToken = swapToken_;
+        auctionTokens[id].redeemToken = redeemToken;
+        auctionTokens[id].swapToken = swapToken;
         IERC20(redeemToken).safeTransferFrom(msg.sender, address(this), amountToDistribute);
         emit AuctionBegins(id, block.number);
     }
@@ -55,13 +59,15 @@ contract OpenRDA is RDA, RDAEvents {
 
         if (autoClose) _close(id);
 
-        IERC20(swapToken).safeTransferFrom(msg.sender, address(this), bid.toSwap);
-        IERC20(redeemToken).safeTransfer(msg.sender, bid.toRedeem);
+        AuctionTokens memory tokens = auctionTokens[id];
+
+        IERC20(tokens.swapToken).safeTransferFrom(msg.sender, address(this), bid.toSwap);
+        IERC20(tokens.redeemToken).safeTransfer(msg.sender, bid.toRedeem);
 
         if (autoClose) {
-            IERC20(swapToken).safeTransfer(owner(), auction.stats.collected);
+            IERC20(tokens.swapToken).safeTransfer(owner(), auction.stats.collected);
             if (toDistribute > 0) {
-                IERC20(redeemToken).safeTransfer(owner(), toDistribute);
+                IERC20(tokens.redeemToken).safeTransfer(owner(), toDistribute);
             }
             emit AuctionEnds(id);
         }
