@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.20;
 
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {RDA, Bid, Auction} from "src/RDA.sol";
 
 interface RDAEvents {
@@ -12,9 +13,15 @@ interface RDAEvents {
     event AuctionEnds(bytes32 indexed id);
 }
 
-contract OpenRDA is RDA, RDAEvents {
+struct AuctionTokens {
     address redeemToken;
     address swapToken;
+}
+
+contract OpenRDA is RDA, RDAEvents {
+    using SafeERC20 for IERC20;
+
+    mapping(bytes32 => AuctionTokens) private auctionTokens;
 
     constructor() RDA() {}
 
@@ -25,14 +32,14 @@ contract OpenRDA is RDA, RDAEvents {
     function begin(
         bytes32 id,
         uint256 amountToCollect,
-        address swapToken_,
+        address swapToken,
         uint256 amountToDistribute,
-        address redeemToken_
+        address redeemToken
     ) external onlyOwner {
         _begin(id, amountToCollect, amountToDistribute);
-        redeemToken = redeemToken_;
-        swapToken = swapToken_;
-        ERC20(redeemToken).transferFrom(msg.sender, address(this), amountToDistribute);
+        auctionTokens[id].redeemToken = redeemToken;
+        auctionTokens[id].swapToken = swapToken;
+        IERC20(redeemToken).safeTransferFrom(msg.sender, address(this), amountToDistribute);
         emit AuctionBegins(id, block.number);
     }
 
@@ -43,20 +50,25 @@ contract OpenRDA is RDA, RDAEvents {
         Bid memory bid = previewBid(id, swapAmount, block.number);
         _processBid(id, bid);
 
-        ERC20(swapToken).transferFrom(msg.sender, address(this), bid.toSwap);
-        ERC20(redeemToken).transfer(msg.sender, bid.toRedeem);
-
         Auction memory auction = auctions[id];
         toCollect = _leftCollect(auction);
         toDistribute = _leftDistribute(auction);
         emit AuctionBid(id, bid.toSwap, bid.toRedeem);
 
-        if (toCollect == 0 || toDistribute == 0) {
-            ERC20(swapToken).transfer(owner(), auction.stats.collected);
+        bool autoClose = toCollect == 0 || toDistribute == 0;
+
+        if (autoClose) _close(id);
+
+        AuctionTokens memory tokens = auctionTokens[id];
+
+        IERC20(tokens.swapToken).safeTransferFrom(msg.sender, address(this), bid.toSwap);
+        IERC20(tokens.redeemToken).safeTransfer(msg.sender, bid.toRedeem);
+
+        if (autoClose) {
+            IERC20(tokens.swapToken).safeTransfer(owner(), auction.stats.collected);
             if (toDistribute > 0) {
-                ERC20(redeemToken).transfer(owner(), toDistribute);
+                IERC20(tokens.redeemToken).safeTransfer(owner(), toDistribute);
             }
-            _close(id);
             emit AuctionEnds(id);
         }
     }
