@@ -35,6 +35,8 @@ contract DutchAuctionHouseTest is RDAEvents, Test {
     uint256 private amountToCollect;
     uint256 private amountToDistribute;
 
+    uint8 private constant decimals = 8;
+
     bytes32 private id = keccak256(abi.encode(address(this)));
 
     address private notOwner = makeAddr("alice");
@@ -55,11 +57,11 @@ contract DutchAuctionHouseTest is RDAEvents, Test {
         redeemToken.mint(address(this), amountToDistribute);
 
         auctionHouse = OpenRDA(Clones.clone(address(new OpenRDA())));
-        auctionHouse.initialize(address(this), lotSize, stepRate, stepLength);
+        auctionHouse.initialize(address(this), lotSize, stepRate, stepLength, decimals);
     }
 
     function _maxFizzAuctionBlocks() private view returns (uint256) {
-        return Math.mulDiv(stepLength, 10 ** 8, stepRate);
+        return Math.mulDiv(stepLength, 10 ** decimals, stepRate);
     }
 
     function _prepareNotOwnerToBid(uint256 bidAmount) internal {

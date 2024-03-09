@@ -1,6 +1,6 @@
 {
   "name": "@dgma/reverse-dutch-auction",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Contracts for dutch reverse auction implementation",
   "files": [
     "src/*"

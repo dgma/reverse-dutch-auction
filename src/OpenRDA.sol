@@ -25,10 +25,6 @@ contract OpenRDA is RDA, RDAEvents {
 
     constructor() RDA() {}
 
-    function decimals() public pure override returns (uint8) {
-        return 8;
-    }
-
     function begin(
         bytes32 id,
         uint256 amountToCollect,
