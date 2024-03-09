@@ -3,7 +3,7 @@
   "version": "0.0.2",
   "description": "Contracts for dutch reverse auction implementation",
   "files": [
-    "src"
+    "src/*"
   ],
   "keywords": [
     "ethereum",
