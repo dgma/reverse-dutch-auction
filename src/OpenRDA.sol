@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {RDA, Bid, Auction} from "src/RDA.sol";
+import {SafeERC20} from "node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {RDA, Bid, Auction} from "./RDA.sol";
 
 interface RDAEvents {
     event AuctionBegins(bytes32 indexed id, uint256 indexed initBlock);
