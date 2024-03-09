@@ -21,10 +21,14 @@ abstract contract RDA is IRDA, OwnableUpgradeable, RDABase {
         _disableInitializers();
     }
 
-    function initialize(address owner, uint256 lotSize_, uint256 stepRate_, uint8 stepLength_)
-        external
-        initializer
-    {
+    function initialize(
+        address owner,
+        uint256 lotSize_,
+        uint256 stepRate_,
+        uint8 stepLength_,
+        uint8 decimals_
+    ) external initializer {
+        decimals = decimals_;
         __Ownable_init(owner);
         _setHouseParams(lotSize_, stepRate_, stepLength_);
     }

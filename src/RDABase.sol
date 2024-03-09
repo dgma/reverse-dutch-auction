@@ -7,7 +7,6 @@ import {EnumerableSet} from "node_modules/@openzeppelin/contracts/utils/structs/
 import {RDAMathLib} from "./RDAMathLib.sol";
 
 import {
-    IRDAMeta,
     Auction,
     AuctionStats,
     Bid,
@@ -16,7 +15,7 @@ import {
     AuctionNotActive
 } from "./RDA.types.sol";
 
-abstract contract RDABase is IRDAMeta {
+abstract contract RDABase {
     using Math for uint256;
     using RDAMathLib for uint256;
     using EnumerableSet for EnumerableSet.Bytes32Set;
@@ -24,6 +23,7 @@ abstract contract RDABase is IRDAMeta {
     uint256 public stepRate;
     uint256 public stepLength;
     uint256 public lotSize;
+    uint256 public decimals;
 
     mapping(bytes32 => Auction) internal auctions;
     EnumerableSet.Bytes32Set internal auctionsSet;
@@ -50,10 +50,6 @@ abstract contract RDABase is IRDAMeta {
         }
         _;
     }
-
-    // pure getters
-
-    function decimals() public pure virtual returns (uint8);
 
     // internal API setters
 
@@ -95,8 +91,8 @@ abstract contract RDABase is IRDAMeta {
 
     // internal API Getters
 
-    function _denominator() internal pure returns (uint256) {
-        return 10 ** decimals();
+    function _denominator() internal view returns (uint256) {
+        return 10 ** decimals;
     }
 
     function _isAutcionActive(bytes32 id) internal view returns (bool) {

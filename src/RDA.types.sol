@@ -33,13 +33,14 @@ struct Bid {
     uint256 toRedeem;
 }
 
-interface IRDAMeta {
-    function decimals() external pure returns (uint8);
-}
-
 interface IRDA {
-    function initialize(address owner, uint256 lotSize_, uint256 stepRate_, uint8 stepLength_)
-        external;
+    function initialize(
+        address owner,
+        uint256 lotSize_,
+        uint256 stepRate_,
+        uint8 stepLength_,
+        uint8 decimals_
+    ) external;
 
     function setHouseParams(uint256 lotSize_, uint256 stepRate_, uint8 stepLength_) external;
 
